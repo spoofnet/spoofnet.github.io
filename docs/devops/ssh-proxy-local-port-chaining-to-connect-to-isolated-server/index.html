@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <title>SSH Proxy Local Port Chaining to connect to an Isolated Server - Alex Ankers</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="There you are with Internet access to an AWS EC2 instance, Azure Virtual Machine or VPS (Virtual Private Server) as we called them in the good old days, but beyond that - on a Private LAN of some sort">
+  <meta name="author" content="Alex Ankers">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://alexankers.com/devops/ssh-proxy-local-port-chaining-to-connect-to-isolated-server/">
+  <!-- Picnic CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/picnic" type="text/css">
+  <link rel="stylesheet" href="/static/site.css" type="text/css">
+  <!-- Favicon -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+  <!-- Open Graph -->
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="SSH Proxy Local Port Chaining to connect to an Isolated Server">
+  <meta property="og:description" content="There you are with Internet access to an AWS EC2 instance, Azure Virtual Machine or VPS (Virtual Private Server) as we called them in the good old days, but beyond that - on a Private LAN of some sort">
+  <meta property="og:image" content="https://alexankers.com/static/img/ssh_proxy_local_port_chaining.png">
+  <meta property="og:url" content="https://alexankers.com/devops/ssh-proxy-local-port-chaining-to-connect-to-isolated-server/">
+  <meta property="og:site_name" content="Alex Ankers">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="SSH Proxy Local Port Chaining to connect to an Isolated Server">
+  <meta name="twitter:url" content="https://alexankers.com/devops/ssh-proxy-local-port-chaining-to-connect-to-isolated-server/">
+  <meta name="twitter:image" content="https://alexankers.com/static/img/ssh_proxy_local_port_chaining.png">
+  <meta name="twitter:description" content="There you are with Internet access to an AWS EC2 instance, Azure Virtual Machine or VPS (Virtual Private Server) as we called them in the good old days, but beyond that - on a Private LAN of some sort">
+  <!-- JSON-LD Schema -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","description":"There you are with Internet access to an AWS EC2 instance, Azure Virtual Machine or VPS (Virtual Private Server) as we called them in the good old days, but beyond that - on a Private LAN of some sort","headline":"SSH Proxy Local Port Chaining to connect to an Isolated Server","name":"Alex Ankers","url":"https://alexankers.com/devops/ssh-proxy-local-port-chaining-to-connect-to-isolated-server/"}</script>
+ </head>
+ <body>
+  <nav class="transparent">
+   <a href="/" class="brand"><span>Alex Ankers</span></a><input id="bmenu" type="checkbox" class="show">
+   <label for="bmenu" class="burger toggle pseudo button">menu</label>
+   <div class="menu">
+    <a href="https://www.linkedin.com/in/alex-ankers/" target="_blank" class="pseudo button">LinkedIn</a>
+    <a href="https://github.com/spoofnet/" target="_blank" class="pseudo button">GitHub</a>
+    <a href="https://www.linkedin.com/in/alex-ankers" target="_blank" class="button">Contact</a>
+   </div>
+  </nav>
+  <main>
+<header class="hero">
+ <div class="content">
+  <h1>SSH Proxy Local Port Chaining to connect to an Isolated Server</h1>
+  <p>Apr 25, 2020</p>
+ </div>
+</header>
+<div id="content" class="visual flex one">
+ <p>There you are with Internet access to an <a href="https://aws.amazon.com/ec2/">AWS EC2 instance</a>, <a href="https://azure.microsoft.com/en-gb/services/virtual-machines/">Azure Virtual Machine</a> or <a href="https://www.vultr.com/products/cloud-compute/">VPS (Virtual Private Server)</a> as we called them in the good old days, but beyond that - on a Private LAN of some sort (could be an AWS VPC, Azure VNET or Physical LAN) - there is another Server, which only has a Private IP Address. This pesky Server is what you'd like to access SQL Developer on, from your own PC. Hmm...</p>
+
+<h2>Diagram time</h2>
+
+<p>Here's a more descriptive Network Diagram, showing more specifics around the issue, namely:</p>
+
+<ul>
+<li>Your PC/Mac/Laptop
+<ul>
+<li>Private IP doesn't matter</li>
+<li>Public IP is <code>99.99.99.1</code></li>
+</ul></li>
+<li>Internet-accessible VM
+<ul>
+<li>Public IP is <code>1.1.1.1</code></li>
+<li>This is allowed through an Internal Firewall to SSH to <code>172.30.12.99</code> (sourced from it's LAN Private IP of <code>172.30.12.6</code>)</li>
+<li>This is <strong>not</strong> allowed to connect on SQL Database (<code>TCP/3306</code>) to your <code>172.30.12.99</code> Database Server</li>
+</ul></li>
+<li>Database VM
+<ul>
+<li>No Public IP (not directly accessible from the Internet)</li>
+<li>Private IP is <code>172.30.12.99</code></li>
+<li>Has SSH Daemon/Server and SQL Server installed on it</li>
+</ul></li>
+</ul>
+
+<p><img src="/static/img/ssh_proxy_local_port_chaining.png" alt="SSH Proxy Local Port Chaining Topology" /></p>
+
+<p>The ultimate goal is to enable SQL Developer on your PC to somehow speak to SQL Server (<code>TCP/3306</code>) on <code>172.30.12.99</code>.</p>
+
+<h2>SSH Tunnels - Local Port Proxy</h2>
+
+<p>Which is where a handy feature of SSH comes in, where it has the ability to Tunnel.</p>
+
+<h3>Dynamic Port Tunneling (SOCKS Proxy)</h3>
+
+<p>You may have used this prior with <a href="https://dev.to/__namc/ssh-tunneling---local-remote--dynamic-34fa">Dynamic Port Tunneling</a>, where you do something like this:</p>
+
+<pre><code>ssh -D 1080 user@1.1.1.1</code></pre>
+
+<p>Then configure <code>127.0.0.1:1080</code> as a SOCKS4 or SOCKS5 Proxy in your Firefox Browser like this:</p>
+
+<p><img src="/static/img/firefox_proxy.png" alt="Firefox SSH SOCKS Proxy Options Screen" /></p>
+
+<p>And then you can browse some http://internalserver in your Firefox Browser as if you're controlling/appear to be the Internet-connected VM to upstream Servers/Systems. That won't help you here, mind.</p>
+
+<h3>Local Port Tunneling</h3>
+
+<p>Instead, we're going to use Local Port tunneling, which looks a bit like this:</p>
+
+<pre><code>ssh user@1.1.1.1 -L 999:127.0.0.1:3306</code></pre>
+
+<p>It's worth breaking down what this does, with some notes:</p>
+
+<ul>
+<li><code>999</code>
+<ul>
+<li>This is the port that will be listening on your PC (i.e. <code>127.0.0.1</code> or <code>localhost</code>, from your perspective)</li>
+<li>Any traffic sent to this port is chucked through the Tunnel, for the other side (SSH Server on <code>1.1.1.1</code>) to deal with</li>
+</ul></li>
+<li><code>127.0.0.1</code>
+<ul>
+<li>This is where you want the other side (<code>1.1.1.1</code>) to send your Tunneled traffic to (Destination IP Address)
+<ul>
+<li>Note in this case, it is itself; the <code>127.0.0.1</code> here refers to <code>1.1.1.1</code> going to itself, not your PC</li>
+<li>Think of stuff after the first <code>-L</code> colon as "remote-side stuff"</li>
+</ul></li>
+</ul></li>
+<li><code>3306</code>
+<ul>
+<li>This is where you want the other side (<code>1.1.1.1</code>) to send your Tunneled traffic to (Destination TCP Port)</li>
+<li>This is the TCP-using process (in our case, it'll be another SSH not SQL, as you might think) on the other side (<code>1.1.1.1</code>)`</li>
+</ul></li>
+</ul>
+
+<p>In our case, this wouldn't do much - as there is no Database Server (<code>TCP/3306</code>) running on our first Jump Box (<code>1.1.1.1</code>) - so the next bit is where the chaining comes in.</p>
+
+<h3>Local Port Chaining</h3>
+
+<p>Leaving this SSH session (above) open, we open a fresh Terminal/Command Prompt/SSH session from our PC to <code>1.1.1.1</code>, with no Tunnels requested (bog standard SSH):</p>
+
+<pre><code>ssh user@1.1.1.1</code></pre>
+
+<p>Using this, we now tell <code>1.1.1.1</code> to SSH to our target Database (<code>172.30.12.99</code>), but this time we want the traffic to pop out at the actual Database Port (<code>3306</code>):</p>
+
+<pre><code>ssh user@172.30.12.99 -L 3306:127.0.0.1:3306</code></pre>
+
+<p>Finally, we can now connect to <code>127.0.0.1:999</code> on the PC, and it will traverse the two SSH Tunnels and pop out as being <code>172.30.12.99:3306</code> - even though that destination doesn't have Internet access.</p>
+
+<p>Note in the above that the choice of using <code>-L 3306</code> on the <code>1.1.1.1</code> PC is irrelevant; this could have been <code>998</code>; but then the SSH command run against <code>172.30.12.99</code> would have had to read <code>-L 998</code> instead of <code>-L 3306</code>. All you are doing here is setting up listeners, and matching that number up between the two SSH Commands.</p>
+
+<h2>What it achieves</h2>
+
+<p><img src="/static/img/ssh_proxy_local_port_chaining_resulting.png" alt="SSH Proxy Local Port Chaining Resulting Topology" /></p>
+
+<p>Which gets you out of a hole, and able to access a "Bastion" Server on a Private LAN or VNET somewhere, as long as you've got SSH access throughout the chain.</p>
+
+<p>Have fun tinkering!</p>
+</div>
+  </main>
+  <footer>Copyright &copy; 2023 Alex Ankers</footer>
+  <script src="/static/site.js"></script>
+ </body>
+</html>
