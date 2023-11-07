@@ -26,11 +26,12 @@ jobs:
       - name: Run Static Site Generator
         run: python site_generator.py
       - name: List generated content and repo copy
-        run: ls -laR
+        run: ls -lR docs && git diff
       - name: Commit generated HTML files
         if: github.event_name == 'push'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "spoofnet@users.noreply.github.com"
-          git commit -a -m "${{ env.CI_COMMIT_MESSAGE }}"
+          git add coverage docs
+          git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
           git push
