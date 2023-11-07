@@ -31,4 +31,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Apply Static Site Generator-created Static HTML Site
-          branch: main
+          file_pattern: docs/*
