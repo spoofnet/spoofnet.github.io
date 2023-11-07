@@ -17,14 +17,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@master
-      - name: Install Python Packages
+      - name: Install Python packages
         run: pip install -r requirements.txt
+      - name: Install JPEGoptim and optiPNG image compressors
+        run: sudo install jpegoptim optipng -y
+      - name: Run JPEG optim and optiPNG to compress JPEG and PNG static images
+        run: jpegoptim docs/img/*.jpg && optipng docs/img/*.png
       - name: Run Static Site Generator
         run: python site_generator.py
-      - name: Install JPEG and PNG Optimisers
-        run: sudo apt-get install jpegoptim optipng -y
-      - name: Optimise uploaded Static Images
-        run: jpegoptim docs/img/*.jpg && optipng docs/img/*.png
       - name: Commit generated HTML files
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
