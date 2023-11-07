@@ -1,4 +1,5 @@
 .DS_Store
+docs/*/*.html
 docs/*.html
 !docs/404.html
 docs/*.xml
