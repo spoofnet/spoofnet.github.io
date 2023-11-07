@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <title>Juniper SRX Filter-based Forwarding (FBF) Policy Based Routing - Alex Ankers</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="If you're a Cisco Guy (or Girl, I'm not biased; both sexes are welcome to the Cisco Pain Train), you'll likely have come across a need for Policy Based Routing (PBR) to change the normal Destination I">
+  <meta name="author" content="Alex Ankers">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://alexankers.com/networking/juniper-srx-fbf-policy-based-routing/">
+  <!-- Picnic CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/picnic" type="text/css">
+  <link rel="stylesheet" href="/static/site.css" type="text/css">
+  <!-- Favicon -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+  <!-- Open Graph -->
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Juniper SRX Filter-based Forwarding (FBF) Policy Based Routing">
+  <meta property="og:description" content="If you're a Cisco Guy (or Girl, I'm not biased; both sexes are welcome to the Cisco Pain Train), you'll likely have come across a need for Policy Based Routing (PBR) to change the normal Destination I">
+  <meta property="og:image" content="https://alexankers.com/static/img/juniper_srx_pbr_internet.png">
+  <meta property="og:url" content="https://alexankers.com/networking/juniper-srx-fbf-policy-based-routing/">
+  <meta property="og:site_name" content="Alex Ankers">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Juniper SRX Filter-based Forwarding (FBF) Policy Based Routing">
+  <meta name="twitter:url" content="https://alexankers.com/networking/juniper-srx-fbf-policy-based-routing/">
+  <meta name="twitter:image" content="https://alexankers.com/static/img/juniper_srx_pbr_internet.png">
+  <meta name="twitter:description" content="If you're a Cisco Guy (or Girl, I'm not biased; both sexes are welcome to the Cisco Pain Train), you'll likely have come across a need for Policy Based Routing (PBR) to change the normal Destination I">
+  <!-- JSON-LD Schema -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","description":"If you're a Cisco Guy (or Girl, I'm not biased; both sexes are welcome to the Cisco Pain Train), you'll likely have come across a need for Policy Based Routing (PBR) to change the normal Destination I","headline":"Juniper SRX Filter-based Forwarding (FBF) Policy Based Routing","name":"Alex Ankers","url":"https://alexankers.com/networking/juniper-srx-fbf-policy-based-routing/"}</script>
+ </head>
+ <body>
+  <nav class="transparent">
+   <a href="/" class="brand"><span>Alex Ankers</span></a><input id="bmenu" type="checkbox" class="show">
+   <label for="bmenu" class="burger toggle pseudo button">menu</label>
+   <div class="menu">
+    <a href="https://www.linkedin.com/in/alex-ankers/" target="_blank" class="pseudo button">LinkedIn</a>
+    <a href="https://github.com/spoofnet/" target="_blank" class="pseudo button">GitHub</a>
+    <a href="https://www.linkedin.com/in/alex-ankers" target="_blank" class="button">Contact</a>
+   </div>
+  </nav>
+  <main>
+<header class="hero">
+ <div class="content">
+  <h1>Juniper SRX Filter-based Forwarding (FBF) Policy Based Routing</h1>
+  <p>Sep 15, 2022</p>
+ </div>
+</header>
+<div id="content" class="visual flex one">
+ <p>If you're a Cisco Guy (or Girl, I'm not biased; both sexes are welcome to the Cisco Pain Train), you'll likely have come across a need for <a href="https://community.cisco.com/t5/networking-knowledge-base/how-to-configure-pbr/ta-p/3122774">Policy Based Routing (PBR)</a> to change the normal Destination IP-based logic of Network Routing to instead be a Source-IP or Interface-based logic, for some purpose of bypass. On Cisco gear, this is normally achieved via Route Maps or <a href="https://www.cisco.com/c/en/us/td/docs/routers/xr12000/software/xr12k_r4-0/routing/configuration/guide/rc40xr12k_chapter7.html">Route Policy Language (RPL)</a> matching Access Control Lists (ACLs), Prefix Lists, Interfaces or some other attribute to match the desired traffic flows to "PBR" away from normal Routing.</p>
+
+<p>Junos - or specifically <a href="https://www.juniper.net/documentation/us/en/software/junos/routing-policy/topics/concept/firewall-filter-option-filter-based-forwarding-overview.html">Filter-based Forwarding (FBF)</a> - takes a very different approach to achieving this, which may take your "Cisco brain" a bit of context-switching to adapt to, namely:</p>
+
+<ul>
+<li>PBR (FBF) is performed within a new, <em>seperate</em>, Routing Instance (VR, Virtual Router, or VRF)
+<ul>
+<li>So all entry (ingress) / exit (egress) interfaces will need to be "imported" to also "attach" to this PBR-specific VRF</li>
+</ul></li>
+<li>FBF is applied <em>inbound</em> on the <em>Source-facing</em> interface
+<ul>
+<li>So normal, non-PBR traffic flow still needs to be <em>explicitly</em> allowed through (otherwise it'll not just not be PBR'd, it'll be blocked from flowing entirely...)</li>
+</ul></li>
+</ul>
+
+<h2>Worked example</h2>
+
+<p>A worked example probably helps here, so suppose we have the following:</p>
+
+<ul>
+<li>Zscaler Internet Access (or equivalent Security Service Edge [SSE] or Cloud-based Internet Firewall/Proxy)
+<ul>
+<li>Traffic is forced into <a href="https://help.zscaler.com/zia/best-practices-deploying-gre-tunnels">Zscaler via a GRE or IPsec Tunnel</a> which runs atop the Internet into the closest/selected Zscaler Data Centre PoP (Point of Presence)</li>
+<li>Zscaler (fake) Data Centre GRE Endpoint <code>165.225.99.99/32</code> acts as the far-side GRE Tunnel IP Endpoint/Peer</li>
+</ul></li>
+<li>1 Gb Direct Internet Access (DIA) from <code>BigNetCo</code> with Private Allocated (PA) <code>192.0.2.0/24</code> IPv4 Address Block, effectively "leased" to <code>Your Company</code>
+<ul>
+<li>Static IPv4 /30 Handoff/Linknet <code>203.0.113.0/30</code> between Your Company and BigNetCo (out of <code>BigNetCo's</code> IPv4 Address Space)</li>
+</ul></li>
+<li>Default Route on your Juniper SRX towards VRF <code>"Zscaler-Internet"</code>
+<ul>
+<li>GRE Tunnel is transited via Underlay VRF <code>Internet</code>, but forms an extension of Overlay VRF <code>Zscaler-Internet</code> - that is, Default Route on LAN-side of Firewall forwards traffic (following the Default) via VRF <code>Zscaler-Internet</code> into the GRE Tunnel to Zscaler</li>
+<li>Underlay VRF "Internet" only really exists to transit the GRE Tunnel itself (i.e. has a Static Route via next-hop <code>203.0.113.1</code> BigNetCo for GRE Peer Endpoint <code>165.225.99.99/32</code> only)</li>
+</ul></li>
+<li>VRF <code>Prod</code> exists as the only internal-facing DMZ/Security Zone, and routes the whole <code>10.0.0.0/8</code> Your Company Summary IPv4
+<ul>
+<li>Of this, most of <code>10.0.0.0/8</code> should have <code>"Normal Internet access"</code> - that is to say, flow via the GRE Tunnel to be scrubbed by Zscaler (i.e. appear to the Internet as a 165.x.x.x Zscaler Source IP)</li>
+<li>Apart from <code>"Direct Internet access"</code> Subnet <code>10.2.0.0/24</code> - which (for reasons) needs to bypass Zscaler inspection and go direct to the Internet (i.e. appear to the Internet as a <code>192.0.2.0/24</code> Source IP)
+<ul>
+<li>And only then if they are going to <code>HTTPS</code> destinations; if they try and go to, say, <code>HTTP</code> or <code>DNS</code>, we want to send that via Zscaler inspection as per `"Normal Internet access"``</li>
+</ul></li>
+</ul></li>
+</ul>
+
+<h2>Topology</h2>
+
+<p>A picture paints a thousand words, so that summates as:</p>
+
+<p><img src="/static/img/juniper_srx_pbr_internet.png" alt="Juniper PBR Filter-based Forwarding Topology" /></p>
+
+<h2>Configuration</h2>
+
+<p>Let's look at the raw config first, and then deconstruct it down to what this is doing. For brevity I've omitted the GRE Tunnel configuration, but if you're interested I suggest you read about <a href="https://notworkd.com/post/juniper-srx-overlay-underlay-gre-tunnel-vrfs/">Juniper SRX Overlay and Underlay VRF-seperated GRE Tunnels</a>.</p>
+
+<p>Ditto, in practice you'd want to Source NAT (SNAT) the traffic to a Public IPv4 to make it routable on the Internet, but again, for brevity I'm omitting that and focusing only on the PBR-required configuration itself - as you might want to adopt similar for Private-to-Private PBR requirements.</p>
+
+<pre><code>set routing-instances Internet-Bypass-ZIA instance-type forwarding
+set routing-instances Internet-Bypass-ZIA routing-options static route 0.0.0.0/0 next-hop 203.0.113.1
+set routing-instances Internet-Bypass-ZIA routing-options instance-import POL_EXPORT_FROM_Prod-VRF_TO_Internet-Bypass-ZIA
+set routing-instances Internet-Bypass-ZIA routing-options instance-import POL_EXPORT_FROM_Internet_TO_Internet-Bypass-ZIA
+!
+set firewall family inet filter PBR-BYPASS-ZSCALER-ZIA term PBR-DIRECT-INTERNET from source-address 10.2.0.0/24
+set firewall family inet filter PBR-BYPASS-ZSCALER-ZIA term PBR-DIRECT-INTERNET from destination-address 0.0.0.0/0
+set firewall family inet filter PBR-BYPASS-ZSCALER-ZIA term PBR-DIRECT-INTERNET from destination-port https
+set firewall family inet filter PBR-BYPASS-ZSCALER-ZIA term PBR-DIRECT-INTERNET then routing-instance Internet-Bypass-ZIA
+set firewall family inet filter PBR-BYPASS-ZSCALER-ZIA term term-999 then accept
+!
+set policy-options prefix-list PFX_FROM_Prod_TO_Internet-Bypass-ZIA 10.99.99.0/30
+set policy-options prefix-list PFX_FROM_Prod_TO_Internet-Bypass-ZIA 10.0.0.0/8
+set policy-options policy-statement POL_EXPORT_FROM_Prod_TO_Internet-Bypass-ZIA term 10 from instance Prod
+set policy-options policy-statement POL_EXPORT_FROM_Prod_TO_Internet-Bypass-ZIA term 10 from prefix-list PFX_FROM_Prod_TO_Internet-Bypass-ZIA
+set policy-options policy-statement POL_EXPORT_FROM_Prod_TO_Internet-Bypass-ZIA term 10 then accept
+set policy-options policy-statement POL_EXPORT_FROM_Prod_TO_Internet-Bypass-ZIA term 999 from instance Prod
+set policy-options policy-statement POL_EXPORT_FROM_Prod_TO_Internet-Bypass-ZIA term 999 then reject
+!
+set policy-options prefix-list PFX_FROM_Internet_TO_Internet-Bypass-ZIA 203.0.113.0/30
+set policy-options policy-statement POL_EXPORT_FROM_Internet_TO_Internet-Bypass-ZIA term 10 from instance Internet
+set policy-options policy-statement POL_EXPORT_FROM_Internet_TO_Internet-Bypass-ZIA term 10 from prefix-list PFX_FROM_Internet_TO_Internet-Bypass-ZIA
+set policy-options policy-statement POL_EXPORT_FROM_Internet_TO_Internet-Bypass-ZIA term 10 then accept
+set policy-options policy-statement POL_EXPORT_FROM_Internet_TO_Internet-Bypass-ZIA term 999 from instance Internet
+set policy-options policy-statement POL_EXPORT_FROM_Internet_TO_Internet-Bypass-ZIA term 999 then reject
+!
+set interfaces xe-0/0/1 unit 10 family inet filter input PBR-BYPASS-ZSCALER-ZIA
+</code></pre>
+
+<h2>Break it down now y'all</h2>
+
+<p>That's quite a chunk to digest, so let's break it into chunks of what it achieves, using each exclamation mark (!) as a section divider:</p>
+
+<ol>
+<li>Create a new VRF <code>Internet-Bypass-ZIA</code> for the PBR to occur within; map the Internet-facing WAN and Prod-facing LAN Interfaces and next-hop Prefixes into it, and set a Static Default Route out of it via the Internet-facing WAN interface</li>
+<li>Define a FBF/PBR policy called <code>PBR-BYPASS-ZSCALER-ZIA</code> which has one term/policy statement called <code>PBR-DIRECT-INTERNET</code> that matches <code>HTTPS</code> requests from only the <code>"Direct Internet access"</code> Subnet <code>10.2.0.0/24</code>, and bypasses (does not PBR) any other flows (i.e. leaves them as-was to flow via Zscaler Internet as if the PBR configuration didn't exist)</li>
+<li>Create a Routing Policy <code>POL_EXPORT_FROM_Prod_TO_Internet-Bypass-ZIA</code> to inter-VRF the LAN-facing <code>10.99.99.0/30</code> Handoff/Linknet and associated next-hop <code>10.0.0.0/8</code> Route from the <code>Prod</code> VRF into the PBR <code>Internet-Bypass-ZIA</code> VRF</li>
+<li>Create a Routing Policy <code>POL_EXPORT_FROM_Internet_TO_Internet-Bypass-ZIA</code> to inter-VRF the WAN-facing <code>203.0.113.0/30</code> Handoff/Linknet from the <code>Internet</code> VRF into the PBR <code>Internet-Bypass-ZIA</code> VRF</li>
+<li>Tie it all together by applying the FBF/PBR policy <code>PBR-BYPASS-ZSCALER-ZIA</code> to ingress LAN-facing interface <code>xe-0/0/1.10</code>
+<ol>
+<li>Note if we changed the FBF/PBR policy <code>PBR-BYPASS-ZSCALER-ZIA</code> <code>term-999</code> line from <code>"...then accept"</code> to <code>"...then reject"</code> - or just did not have that line - then any non-PBR'd traffic would not just not be PBR'd, it'd be dropped entirely - so be <strong>very careful</strong> that the PBR/FBF policy is 100% correct <em>before</em> you apply it to the ingress interface</li>
+</ol></li>
+</ol>
+
+<h2>One hop this time</h2>
+
+<p>Hopefully this has been a useful jaunt through the differences Junos SRX uses to perform what we Cisco folk would know as PBR, and shows how it works in practice, effectively using a "third" VRF - in our example - which acts as a PBR Container to glue it all together. In practice this is nice as it keeps it obvious which flows/Source IPs/Destination IPs are being PBR'd and which aren't, however it can be confusing to wrap your head around. I also found a few gotchas if you forget/mismatch the Linknets to "import" the WAN/LAN interfaces into what is effectively a "foreign VRF" from their respective "Prod" or "Internet" native VRFs.</p>
+</div>
+  </main>
+  <footer>Copyright &copy; 2023 Alex Ankers</footer>
+  <script src="/static/site.js"></script>
+ </body>
+</html>

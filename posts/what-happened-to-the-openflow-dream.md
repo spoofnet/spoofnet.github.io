@@ -1,0 +1,85 @@
+---
+title: What happened to the OpenFlow dream?
+slug: what-happened-to-the-openflow-dream
+date: 2020-04-29 17:25
+category: networking
+---
+
+I hope this won't come out as one of those twee "Thot Leader" pieces, as I'm certainly not; nor, like many Thot Leaders, do I have any authority in telling anyone what to do or think. But I've had a drink, so I will wax lyrical about the topic with an opinion or two.
+
+## The OpenFlow Dream
+Cast your mind back to 2018 (or perhaps a few years earlier if you're lucky enough to not work in [#PubSec](https://twitter.com/search?q=%23PubSec)), and the two things you'd have heard ad infinitum in the Twitterverse and Tech World:
+
+1. Software Defined Networking (SDN) will take over all teh Networkz!!!11!!
+2. omgomgOMG OpenFlow is teh only futurez!!1111!! CLI is lame lmao
+
+Well, OK - maybe not; maybe it's unfair to think the Thot Leaders could spell that well or luck out on sentence structure, but humour me a little. Certainly from where I stood (or sat), everyone seemed to be banging on about a centralised SDN Controller of some sort controlling all Network Control Planes ever, across the Data Centre, Enterprise, Wireless and, well, pretty much everything. For some reason everyone had simultaneously seen the light around the death of "One box, one job" (i.e. Firewall is one box; Router is another box; Switch is another box; DDoS is another box; IPS is...) while also eschewing a utopian future with one centralised Controller that would replace all these [middleboxen](https://tools.ietf.org/html/rfc3234), and essentially become the entire Network.
+
+## The Rhetoric
+![Irn Bru must get through](/static/img/bru_must_get_thru.jpg)
+
+It was compelling, you could even argue it was so obvious it was _revolutionary_ - none of these middleboxes existed just 5-10 years prior, when mostly we were worried about Routers and Switches (or for the unlucky of you, the [Core Switch Routing Modules](https://fryguy.net/2011/08/15/catos-and-ios/) - I still have the scars, Cisco...) - all we previously had to manage was maybe a handful of L2 Access Switches or ToRs, and a few Campus Edge Routers, and away we went. But then the fleets of middleboxes came, and suddenly the Campus or Data Centre looked like some horrific mash up of Lego meets Playmobil meets Duplo: nothing quite fitted, everything was managed in something else, and it was bloody impossible to even think about driving it based on higher-level abstractions like "Intent".
+
+So when someone turned around and said, "Yeah, sack all those boxes off; bang in an OpenFlow Controller, and it'll do the whole lot for you, mate" people listened. [Many people listened in fact](https://trends.google.com/trends/explore?date=today%205-y&q=openflow), and I was definitely one of them - which led to this:
+
+![Northbound Networks ZodiacFX OpenFlow Switch](/static/img/northbound_networks_zodiac-fx.jpg)
+
+## The Northbound Networks ZodiacFX
+Buzzword happy, imagine my excitement when [Northbound Networks announced a small, mini-USB powered 4-port OpenFlow Switch](https://northboundnetworks.com/products/zodiac-fx) - I didn't even mind my PayPal being charged in AUD to get my hands on one, this was the future! After a few weeks of international shipping, when it arrived I immediately got to work messing with OpenFlow Controllers like:
+
+- [HP VAN](https://support.hpe.com/hpesc/public/docDisplay?docId=emr_na-c03967699)
+- [OpenDaylight](https://www.opendaylight.org)
+- [POX](https://openflow.stanford.edu/display/ONL/POX+Wiki.html)
+- [Faucet](https://faucet.nz)
+
+Faucet was probably my favourite (I'm a sucker for a cool name or logo, I really am) - and it was great. I sat through hours of [tutorials from people like David Bombal](https://gns3.teachable.com/p/sdn-and-openflow-introduction) and [INE Instructor Jasson Casey](https://ine.com/products/introduction-to-sdn-openflow) and duly saw that I could program an OpenFlow Controller to per-packet police, Access Control, Rate Limit and basically do anything I'd previously had to do on a fleet of middleboxes. This was great! The future was surely OpenFlow, all hail the new king... right?
+
+Well, no - wrong. Just like the yo-yo craze had quickly came and gone in my 90's childhood (I'm bitter, ProYo, I couldn't afford you at the time), so too did my love for OpenFlow near-overnight evaporate. But why? Am I just another Network Buzzword Jockey (well maybe, but let's keep some of my fragile ego intact...)? Did I not "get" the OpenFlow paradigm shift? What was going on?
+
+## The OSI Model
+Remember this, the stupid thing they force you to learn by rote in Computer Science and Cisco Exams:
+
+1. Application
+2. Presentation
+3. Session
+4. Transport
+5. Network
+6. Data Link
+7. Physical
+
+You learn it, you don't really understand why you're learning it, you spit it out for the exam; you move on with your life (wholly indoors, during this time of COVID-19, for the history books [Hi, [Archive.org](https://archive.org/web/) *waves*]). A few years later, you get a job in IT/Telco/Networking, maybe a few people superficially reference it now and again; you're still not getting it. Then, in more recent years, people say a few phrases that really make it "click" in your head - one of them being "up the stack".
+
+### Up the Stack
+The Stack being a allegorical notion, it has a bottom, a middle, and a top - and is largely used in the IT/Networking field when talking to a collection of all the Routers, Switches, Servers, Middleboxes and so on you require to host a given Application/Set of Applications/"Service". For me, in the CapEx-rich/OpEx-poor Public Sector world, this often means one unique stack of Routers/Switches/Servers/etc per Application/"Service", due to a unique Project-driven focus in the world that no <del>Real World</del> Private Sector firm could afford to employ (you do "Multi-tenant", I do "Same tenant, second house on the street"). Either way, "the Stack" - for me as an Infrastructure Guy - refers to the collection of stuff that makes this up. If you were a Software Girl, this might refer to the stack of middleware (SQL, MongoDB, Amazon SQS etc) as well as the data structures and ultimately code or language binaries/compilers that run your Application - it's much the same concept, you'd just be decomposing an upper-part of the OSI Model.
+
+Which aptly brings me to my point; Infrastructure peoples like me are at the "bottom of the Stack"; Software peoples are instead at the "top of the Stack". A major paradigm shift did indeed occur around 2016-2018, but it wasn't SDN; it was something inspired by the notion that [Software is Eating The World](https://a16z.com/2011/08/20/why-software-is-eating-the-world/), and it moved the problem "up the Stack" (see, that OSI Model is useful - as a _shared point of reference_ - that's the bit they neglect to tell you in school). Where to? Glad you asked.
+
+### Kubernetes and the <del>Sunshine</del> Gang
+_"Na, na, na, na, na..."_ Alright, I give (it) up, that's not going to work. By now (2016 for the Real World, no idea when for the PubSec world), [something called k8s was taking over mindshare](https://trends.google.com/trends/explore?date=today%205-y&q=kubernetes) from OpenFlow, and SDN in general, and really driving home the point of software being the driving force of the IT world. The same was (and is) happening in the world of Cloud vs On-Prem; the true value of Cloud is in it's higher-layer abstraction and orchestration capabilities (up that Stack again), not [because it's marginally cheaper than on-Prem](https://www.lastweekinaws.com/blog/should-i-pick-digitalocean-or-aws-for-my-next-project/). There are many more things you can do in the world of [k8s](https://kubernetes.io), [OpenShift](https://www.openshift.com), [EKS](https://aws.amazon.com/eks/) et al around overcoming the "middlebox problem" - and pushing it back to where it belongs/who knows the most about it (the Application and Software Peoples) - than using an SDN-backed approach.
+
+> Regarding the term "On-Prem" - I know, I know; but it sounds cool. Fight me.
+
+![Kubernetes searches on Google Search Trends](/static/img/kubernetes_google_searches.png)
+
+## The nail in the OpenFlow coffin
+I don't doubt that [OpenFlow has a few valid use cases in the real world](https://opensource.com/article/19/1/faucet-open-source-sdn-controller), but they are few and far between; but for the main, the bitter cold truth is the IT world is, currently, split into sects aligned around two disciplines:
+
+1. Developers
+2. Operators
+
+How do I prove I'm right here? DevOps - you can't have an abbreviation based on tribes that don't exist. You know what this means in practice, or did mean in practice? Tribes of people, aligned to that pesky OSI Model:
+
+1. Applicationy Peoples
+ 1. Aligned to OSI L4-7
+2. Infrastructurey Peoples
+ 1. Aligned to OSI L1-3
+
+How do I prove I'm right here? Middleboxes - those things that were neither OSI L3 nor OSI L4, they were a bit of both. You know why they were always a pain in the arse? Because they were trying to do with physical kit what DevOps is trying to do with people; align the tribes.
+
+As the world has progressively moved up the Stack, and in doing so to "enabling the Application" (and by extension, the _Developer_), unfortunately the Infrastructure Peoples (myself included) have become less relevant. With k8s and it's ilk, no longer do you need us to mangle some middlebox via Chinese Whispers ("I'm sure he said TCP/1521? That's the Oracle DB Port isn't it? I'll set up a Load Balancer VIP Pool for that, not got time to ask him..."); you can do it yourself with things like [Istio](https://istio.io), [Envoy](https://www.envoyproxy.io) and other cool-kid stuff I'm not Dev enough to do.
+
+And frankly, why wouldn't you? It's your App; you built it (or are unlucky enough to be charged with keeping its [COTS](https://en.wikipedia.org/wiki/Commercial_off-the-shelf) form alive and kicking); you know what it does, what it needs to do, and what it doesn't need to do. Us Infrastructure folk, frankly, don't; and we don't really care, because we're too busy tweaking various OSI L1-3 knobs to stop everything setting on fire.
+
+Which brings me nicely back to OpenFlow. Sure, it's a great idea; but it's an _Infrastructure_ person's view of the world; not a _Developer_'s view of the world. It's us as Infrastructure folk trying to bring our detailed, abstraction-averse OSI L1-3 thinking (as you go down the Stack, the level of detail for any one given Layer goes up inversely) _up_ the Stack to the more abstraction-dependent OSI L4-7 thinking of the Developer folk. Sprinkle on some organisation politics; Development vs Operations tribal thinking and add in some Enterprise "JFDI it, my golf mate wrote it, we must use Crapplication 1.2 now!" and you've got a recipe for a self-tapping hammer for the nail in the OpenFlow coffin.
+
+Farewell, OpenFlow - I hardly knew ye.
