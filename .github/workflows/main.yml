@@ -25,7 +25,9 @@ jobs:
         run: jpegoptim docs/static/img/*.jpg && optipng docs/static/img/*.png
       - name: Run Static Site Generator
         run: python site_generator.py
+      - name: List generated content and repo copy
+        run: ls -laR
       - name: Commit generated HTML files
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Apply Static Site Generator-created Static HTML Site
