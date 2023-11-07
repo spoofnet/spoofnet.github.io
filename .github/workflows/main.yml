@@ -32,3 +32,4 @@ jobs:
         with:
           commit_message: Apply Static Site Generator-created Static HTML Site
           file_pattern: docs/
+          push_options: '--force'
