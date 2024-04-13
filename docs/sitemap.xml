@@ -5,7 +5,15 @@
   <changefreq>monthly</changefreq>
  </url>
  <url>
-  <loc>https://alexankers.com/networking/network-billy-the-worlds-greatest-crap-looking-snmp-upload-and-download-tool/</loc>
+  <loc>https://alexankers.com/compute/using-intel-vpro-amt-me-as-a-poor-mans-ilo-for-kvm/</loc>
+  <changefreq>always</changefreq>
+ </url>
+ <url>
+  <loc>https://alexankers.com/devops/not-technical-but/</loc>
+  <changefreq>always</changefreq>
+ </url>
+ <url>
+  <loc>https://alexankers.com/devops/ssh-proxy-local-port-chaining-to-connect-to-isolated-server/</loc>
   <changefreq>always</changefreq>
  </url>
  <url>
@@ -13,11 +21,7 @@
   <changefreq>always</changefreq>
  </url>
  <url>
-  <loc>https://alexankers.com/compute/using-intel-vpro-amt-me-as-a-poor-mans-ilo-for-kvm/</loc>
-  <changefreq>always</changefreq>
- </url>
- <url>
-  <loc>https://alexankers.com/devops/ssh-proxy-local-port-chaining-to-connect-to-isolated-server/</loc>
+  <loc>https://alexankers.com/networking/network-billy-the-worlds-greatest-crap-looking-snmp-upload-and-download-tool/</loc>
   <changefreq>always</changefreq>
  </url>
  <url>
@@ -26,10 +30,6 @@
  </url>
  <url>
   <loc>https://alexankers.com/networking/juniper-srx-fbf-policy-based-routing/</loc>
-  <changefreq>always</changefreq>
- </url>
- <url>
-  <loc>https://alexankers.com/devops/not-technical-but/</loc>
   <changefreq>always</changefreq>
  </url>
 </urlset>
