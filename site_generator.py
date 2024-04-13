@@ -107,7 +107,7 @@ if __name__ == '__main__':
             html_page_create(OUTPUT_DIRECTORY, TEMPLATES_DIRECTORY, 'post.html', {'post': blog_post_data}, 'Article', SEO_DESCRIPTION, blog_post_data['permalink'])
 
     # Home - Process summary blog posts page (reverse sort: newest first)
-    blog_posts_data = sorted(blog_posts_data, key=lambda d: d['date'], reverse=True)
+    blog_posts_data = sorted(blog_posts_data, key=lambda d: d['date'])
     html_page_create(OUTPUT_DIRECTORY, TEMPLATES_DIRECTORY, 'home.html', {'posts': blog_posts_data}, 'WebSite', SEO_DESCRIPTION, '/')
     print('\nRendering Blogs Homepage to HTML... Done')
 
