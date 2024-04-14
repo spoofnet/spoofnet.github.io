@@ -47,6 +47,9 @@ nav .pseudo {
  td {
   word-break: break-all;
  }
+ td:first-child {
+  word-break: normal;
+ }
 }
 h2 {
  padding-left: 0.4em !important;
